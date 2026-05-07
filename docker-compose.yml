@@ -1,0 +1,55 @@
+services:
+  app:
+    build:
+      context: .
+      dockerfile: docker/php/Dockerfile
+    container_name: service-desk-app
+    working_dir: /var/www/html
+    volumes:
+      - .:/var/www/html
+    depends_on:
+      - db
+
+  web:
+    image: nginx:1.27-alpine
+    container_name: service-desk-web
+    ports:
+      - "8080:80"
+    volumes:
+      - .:/var/www/html
+      - ./docker/nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      - app
+
+  db:
+    image: mysql:8.0
+    container_name: service-desk-db
+    ports:
+      - "3306:3306"
+    environment:
+      MYSQL_DATABASE: service_desk
+      MYSQL_USER: service_desk
+      MYSQL_PASSWORD: password
+      MYSQL_ROOT_PASSWORD: root
+    volumes:
+      - db-data:/var/lib/mysql
+
+  node:
+    image: node:24-alpine
+    container_name: service-desk-node
+    working_dir: /var/www/html
+    volumes:
+      - .:/var/www/html
+    ports:
+      - "5173:5173"
+    command: sh -c "npm install && npm run dev -- --host 0.0.0.0"
+
+  mailpit:
+    image: axllent/mailpit:latest
+    container_name: service-desk-mailpit
+    ports:
+      - "8025:8025"
+      - "1025:1025"
+
+volumes:
+  db-data:
